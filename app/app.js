@@ -437,7 +437,7 @@
       const value = resolve(t);
       const figmaAlias = t.ext["com.figma.aliasData"] && t.ext["com.figma.aliasData"].targetVariableName;
       const alias = figmaAlias || (typeof t.value === "string" && /^\{.+\}$/.test(t.value) ? t.value.slice(1, -1) : "");
-      const cssVar = "--" + prefix + t.name.replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase();
+      const cssVar = "--" + prefix + t.name.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
       let visual = "";
       let shown = typeof value === "object" ? JSON.stringify(value) : String(value);
       if (t.type === "color") {
@@ -677,10 +677,14 @@
       })
     );
 
-    if (config.preview && config.preview.tailwind && config.preview.tailwindTheme) {
-      try {
-        tailwindTheme = await fetchText(config.preview.tailwindTheme);
-      } catch (e) {}
+    if (config.preview && config.preview.tailwind) {
+      // Colour utilities generated from /tokens, then the hand-written theme on top.
+      for (const file of ["tokens/tokens.tailwind.css", config.preview.tailwindTheme]) {
+        if (!file) continue;
+        try {
+          tailwindTheme += (await fetchText(file)) + "\n";
+        } catch (e) {}
+      }
     }
 
     $("#brand-title").textContent = config.title || "Design System";
@@ -705,6 +709,7 @@
       try {
         localStorage.setItem("ds-theme", next);
       } catch (e) {}
+      if ($(".preview")) renderPage(currentSlug()); // previews follow the theme
     });
     $("#menu-btn").addEventListener("click", () => {
       const open = document.body.classList.toggle("menu-open");
