@@ -215,6 +215,47 @@
     return Babel.transform(src, { filename: "preview.tsx", presets: ["typescript", ["react", { runtime: "classic" }]] }).code;
   }
 
+  const FIGMA_STYLES = ["Thin", "ExtraLight", "Light", "Regular", "Medium", "SemiBold", "Bold", "ExtraBold", "Black"];
+
+  /**
+   * Fonts for previews, from "preview.fonts" in site.config.json. Each family is also
+   * registered under the names Figma writes in exported code ("Family:Medium"), so
+   * pasted code finds its font. The first family is the default text font.
+   */
+  // Font files are inlined: a sandboxed preview cannot fetch fonts from the site.
+  const fontData = {};
+  async function loadFonts() {
+    await Promise.all(
+      ((config.preview && config.preview.fonts) || []).map(async (f) => {
+        try {
+          const res = await fetch(f.src);
+          if (!res.ok) return;
+          const bytes = new Uint8Array(await res.arrayBuffer());
+          let bin = "";
+          for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+          fontData[f.src] = "data:font/" + (f.src.split(".").pop() || "woff2").toLowerCase() + ";base64," + btoa(bin);
+        } catch (e) {}
+      })
+    );
+  }
+
+  function fontCss() {
+    const fonts = (config.preview && config.preview.fonts) || [];
+    let css = "";
+    fonts.forEach((f) => {
+      if (!f.family || !f.src) return;
+      const format = /\.woff2$/i.test(f.src) ? "woff2" : /\.woff$/i.test(f.src) ? "woff" : /\.otf$/i.test(f.src) ? "opentype" : "truetype";
+      const face = (name, weight) =>
+        '@font-face{font-family:"' + name + '";src:url("' + (fontData[f.src] || f.src) + '") format("' + format + '");font-weight:' + weight + ";font-style:" + (f.style || "normal") + ";font-display:swap}";
+      css += face(f.family, f.weight || "400");
+      // A variable font answers to every Figma style name; a static file only to its own.
+      if (/\s/.test(String(f.weight || ""))) FIGMA_STYLES.forEach((style) => (css += face(f.family + ":" + style, f.weight)));
+      else if (f.figmaStyle) css += face(f.family + ":" + f.figmaStyle, f.weight || "400");
+    });
+    if (fonts[0] && fonts[0].family) css += 'body.ds-preview{font-family:"' + fonts[0].family + '",system-ui,sans-serif}';
+    return css.replace(/<\//g, "");
+  }
+
   function frameDoc(id, body, script, react) {
     const pv = config.preview || {};
     const tag = (src) => '<script src="' + esc(src) + '"></' + "script>";
@@ -222,6 +263,7 @@
     return (
       '<!doctype html><html data-theme="' + (document.documentElement.dataset.theme || "light") + '"><head><meta charset="utf-8"><base href="' +
       esc(document.baseURI.split("#")[0]) + '">' +
+      "<style>" + fontCss() + "</style>" +
       "<style>.ds-preview-error{margin:0;padding:12px;color:#c62828;font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap;text-align:left}</style>" +
       (pv.stylesheets || []).map((href) => '<link rel="stylesheet" href="' + esc(href) + '">').join("") +
       (pv.tailwind ? (tailwindTheme ? '<style type="text/tailwindcss">' + safe(tailwindTheme) + "</style>" : "") + tag("app/vendor/tailwind-browser.js") : "") +
@@ -714,6 +756,8 @@
         } catch (e) {}
       }
     }
+
+    await loadFonts();
 
     $("#brand-title").textContent = config.title || "Design System";
     $("#brand-badge").textContent = config.badge || "DS";
