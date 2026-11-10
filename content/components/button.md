@@ -25,14 +25,31 @@ figma:
 ## Variants
 
 > [!TODO]
-> **Variants and sizes.** One image or live preview per variant, with a line on when to use it.
+> **Variants and sizes.** One image, pasted SVG or `preview` code block per variant, with a line on when to use it.
+
+```tsx preview
+<Button label="Default" />
+<Button variant="Secondary" label="Secondary" />
+<Button variant="Outline" label="Outline" />
+<Button variant="Ghost" label="Ghost" />
+<Button variant="Destructive" label="Destructive" />
+<Button variant="Link" label="Link" />
+```
 
 ![Button variants](assets/images/button/variants.png)
 
 ## States
 
 > [!TODO]
-> **States.** Default, hover, focus, active, disabled, loading, error — whichever apply.
+> **States.** Default, hover, focus, active, disabled, loading, error — as an image, pasted SVG or `preview` code block.
+
+```tsx preview
+<Button state="Default" label="Default" />
+<Button state="Hover" label="Hover" />
+<Button state="Focus" label="Focus" />
+<Button state="Active" label="Active" />
+<Button state="Disabled" label="Disabled" />
+```
 
 ![Button states](assets/images/button/states.png)
 
@@ -49,10 +66,8 @@ figma:
 
 ## Code
 
-> [!TODO]
-> **Snippets.** Replace the example below with the real code. Keep the `preview` flag to show the HTML rendered.
-
-```import type { ButtonHTMLAttributes } from "react";
+```tsx component preview title="button.tsx"
+import type { ButtonHTMLAttributes } from "react";
 
 export type ButtonVariant = "Default" | "Secondary" | "Outline" | "Ghost" | "Destructive" | "Link";
 

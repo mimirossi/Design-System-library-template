@@ -99,7 +99,7 @@
     const attrs = {};
     const rest = info.replace(/(\w+)="([^"]*)"/g, (m, k, v) => ((attrs[k] = v), ""));
     const words = rest.split(/\s+/).filter(Boolean);
-    return { lang: words[0] || "", preview: words.includes("preview"), tab: attrs.tab || "", title: attrs.title || "" };
+    return { lang: words[0] || "", preview: words.includes("preview"), component: words.includes("component"), tab: attrs.tab || "", title: attrs.title || "" };
   }
 
   marked.use({
@@ -110,7 +110,7 @@
         if (info.lang === "tokens") return '<div class="tokens-src">' + esc(token.text) + "</div>";
         return (
           '<div class="code-src" data-lang="' + esc(info.lang) + '" data-tab="' + esc(info.tab) +
-          '" data-title="' + esc(info.title) + '"' + (info.preview ? " data-preview" : "") + ">" + esc(token.text) + "</div>"
+          '" data-title="' + esc(info.title) + '"' + (info.preview ? " data-preview" : "") + (info.component ? " data-component" : "") + ">" + esc(token.text) + "</div>"
         );
       },
     },
@@ -135,34 +135,107 @@
     return panel;
   }
 
-  function previewPanel(code) {
-    const panel = el("div", { class: "preview" });
-    const frame = el("iframe", { sandbox: "allow-same-origin", title: "Preview", loading: "lazy" });
-    const sheets = ((config.preview && config.preview.stylesheets) || [])
-      .map((href) => '<link rel="stylesheet" href="' + esc(href) + '">')
-      .join("");
-    const base = document.baseURI.split("#")[0];
-    frame.srcdoc =
+  /* ---------- Live previews ---------- */
+
+  const frames = {};
+  let frameSeq = 0;
+  let tailwindTheme = "";
+  window.addEventListener("message", (e) => {
+    const d = e.data;
+    if (d && d.dsPreview && frames[d.dsPreview]) frames[d.dsPreview].style.height = Math.max(96, Math.ceil(d.height)) + "px";
+  });
+
+  const scripts = {};
+  function loadScript(src) {
+    return (scripts[src] = scripts[src] || new Promise((resolve, reject) => {
+      const tag = el("script", { src });
+      tag.onload = resolve;
+      tag.onerror = () => reject(new Error("Could not load " + src));
+      document.head.appendChild(tag);
+    }));
+  }
+
+  /** Makes module code runnable as a plain script: drops imports and export keywords. */
+  function stripModule(code) {
+    return code
+      .replace(/^[ \t]*import\s*["'][^"']+["'];?[ \t]*$/gm, "")
+      .replace(/^[ \t]*import\s[\s\S]*?from\s*["'][^"']+["'];?[ \t]*$/gm, "")
+      .replace(/^([ \t]*)export\s+default\s+(?=(async\s+)?function|class)/gm, "$1")
+      .replace(/^[ \t]*export\s+default\s+[\w.]+;?[ \t]*$/gm, "")
+      .replace(/^[ \t]*export\s*\{[^}]*\};?[ \t]*$/gm, "")
+      .replace(/^([ \t]*)export\s+(?=const|let|var|function|async|class|type|interface|enum)/gm, "$1");
+  }
+
+  function componentName(code) {
+    const m = /export\s+default\s+(?:async\s+)?(?:function|class)\s+(\w+)/.exec(code) || /export\s+default\s+(\w+)\s*;?\s*$/m.exec(code);
+    if (m) return m[1];
+    const all = Array.from(code.matchAll(/(?:function|const|class)\s+([A-Z]\w*)/g));
+    return all.length ? all[all.length - 1][1] : "";
+  }
+
+  /** Compiles a JSX/TSX snippet, with the page's component blocks in scope, to plain JS. */
+  async function compileReact(snippet, components) {
+    await loadScript("app/vendor/babel.min.js");
+    let src = components.filter((c) => c !== snippet).map(stripModule).join("\n");
+    if (/^\s*</.test(snippet)) {
+      src += "\nconst __Preview = () => (<>" + snippet + "</>);";
+    } else {
+      const name = componentName(snippet);
+      if (!name) throw new Error("Nothing to render. Start the block with JSX, or define a component in it.");
+      src += "\n" + stripModule(snippet) + "\nconst __Preview = " + name + ";";
+    }
+    return Babel.transform(src, { filename: "preview.tsx", presets: ["typescript", ["react", { runtime: "classic" }]] }).code;
+  }
+
+  function frameDoc(id, body, script, react) {
+    const pv = config.preview || {};
+    const tag = (src) => '<script src="' + esc(src) + '"></' + "script>";
+    const safe = (code) => code.replace(/<\/(script|style)/gi, "<\\/$1");
+    return (
       '<!doctype html><html data-theme="' + (document.documentElement.dataset.theme || "light") + '"><head><meta charset="utf-8"><base href="' +
-      esc(base) + '">' + sheets + '</head><body class="ds-preview">' + code + "</body></html>";
-    const fit = () => {
-      try {
-        frame.style.height = "0px";
-        frame.style.height = Math.max(96, frame.contentDocument.body.scrollHeight) + "px";
-      } catch (e) {}
-    };
-    frame.addEventListener("load", () => {
-      fit();
-      setTimeout(fit, 300);
-    });
-    panel.fit = fit;
+      esc(document.baseURI.split("#")[0]) + '">' +
+      "<style>.ds-preview-error{margin:0;padding:12px;color:#c62828;font:12px/1.5 ui-monospace,monospace;white-space:pre-wrap;text-align:left}</style>" +
+      (pv.stylesheets || []).map((href) => '<link rel="stylesheet" href="' + esc(href) + '">').join("") +
+      (pv.tailwind ? (tailwindTheme ? '<style type="text/tailwindcss">' + safe(tailwindTheme) + "</style>" : "") + tag("app/vendor/tailwind-browser.js") : "") +
+      (react ? tag("app/vendor/react.min.js") + tag("app/vendor/react-dom.min.js") : "") +
+      '</head><body class="ds-preview">' + body +
+      "<script>(function(){var post=function(){parent.postMessage({dsPreview:" + id + ",height:document.body.scrollHeight},'*')};" +
+      "var fail=function(m){document.body.innerHTML='<pre class=\"ds-preview-error\"></pre>';document.body.firstChild.textContent='Preview error: '+m;post()};" +
+      "window.onerror=function(m){fail(String(m))};new ResizeObserver(post).observe(document.body);addEventListener('load',post);" +
+      "try{" + (script ? safe(script) : "") + "}catch(e){fail(e.message)}})();</" + "script></body></html>"
+    );
+  }
+
+  const REACT_LANGS = ["jsx", "tsx", "react"];
+
+  function previewPanel(code, lang, components) {
+    const panel = el("div", { class: "preview" });
+    const id = ++frameSeq;
+    const frame = el("iframe", { sandbox: "allow-scripts", title: "Preview" });
+    frames[id] = frame;
     panel.appendChild(frame);
+    if (REACT_LANGS.includes(lang)) {
+      compileReact(code, components)
+        .then((js) => {
+          const run =
+            "Object.assign(window,React);if(!window.cn)window.cn=function(){return Array.prototype.slice.call(arguments).flat(9).filter(Boolean).join(' ')};\n" +
+            js + "\nReactDOM.createRoot(document.getElementById('root')).render(React.createElement(__Preview));";
+          frame.srcdoc = frameDoc(id, '<div id="root" style="display:contents"></div>', run, true);
+        })
+        .catch((e) => {
+          frame.srcdoc = frameDoc(id, '<pre class="ds-preview-error">' + esc("Preview error: " + e.message) + "</pre>", "", false);
+        });
+    } else {
+      frame.srcdoc = frameDoc(id, code, "", false);
+    }
     return panel;
   }
 
   /** Turns runs of fenced code blocks into copyable blocks, tab groups and live previews. */
   function enhanceCode(root) {
     const done = new Set();
+    // Blocks flagged `component` are in scope for every React preview on the page.
+    const components = $$(".code-src[data-component]", root).map((n) => n.textContent);
     $$(".code-src", root).forEach((first) => {
       if (done.has(first)) return;
       const group = [first];
@@ -177,7 +250,7 @@
 
       const panels = [];
       const previewSrc = group.find((g) => g.hasAttribute("data-preview"));
-      if (previewSrc) panels.push({ label: "Preview", node: previewPanel(previewSrc.textContent) });
+      if (previewSrc) panels.push({ label: "Preview", node: previewPanel(previewSrc.textContent, previewSrc.dataset.lang, components) });
       group.forEach((g) =>
         panels.push({ label: g.dataset.tab || (previewSrc ? "Code" : ""), node: codePanel(g.textContent, g.dataset.lang) })
       );
@@ -190,7 +263,6 @@
           tab.addEventListener("click", () => {
             $$(".tab", tabs).forEach((t, j) => t.setAttribute("aria-selected", j === i ? "true" : "false"));
             panels.forEach((q, j) => (q.node.hidden = j !== i));
-            if (p.node.fit) p.node.fit();
           });
           tabs.appendChild(tab);
           p.node.hidden = i !== 0;
@@ -604,6 +676,12 @@
         } catch (e) {}
       })
     );
+
+    if (config.preview && config.preview.tailwind && config.preview.tailwindTheme) {
+      try {
+        tailwindTheme = await fetchText(config.preview.tailwindTheme);
+      } catch (e) {}
+    }
 
     $("#brand-title").textContent = config.title || "Design System";
     $("#brand-badge").textContent = config.badge || "DS";

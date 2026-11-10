@@ -27,9 +27,14 @@ content/            One Markdown file per page
 assets/images/      One folder of images per page
 tokens/             Figma variable exports (JSON)
 preview/preview.css CSS loaded inside live previews: put the design system's CSS here
+preview/tailwind.css Tailwind theme used inside live previews
 site.config.json    Title, sidebar order, required sections, repository
 app/                The site itself (theme.css holds its fonts and colours)
 ```
+
+## Showing components from code
+
+Besides images, a page can render code: HTML, pasted SVG, and React (`jsx` / `tsx`) with Tailwind classes. Mark the full source of a component with `component` and the other sections of the page can render it with a few lines each. Details in the Editing guide.
 
 ## Working with Figma
 
