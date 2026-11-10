@@ -9,7 +9,7 @@
   },
   "groups": ["Get started", "Foundations", "Actions", "Forms", "Display", "Feedback", "Overlays", "Navigation", "Patterns"],
   "preview": {
-    "stylesheets": ["preview/preview.css"],
+    "stylesheets": ["tokens/tokens.css", "preview/preview.css"],
     "tailwind": true,
     "tailwindTheme": "preview/tailwind.css"
   },

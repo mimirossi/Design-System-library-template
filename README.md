@@ -38,7 +38,7 @@ Besides images, a page can render code: HTML, pasted SVG, and React (`jsx` / `ts
 
 ## Working with Figma
 
-- **Tokens**: export variables from Figma as JSON into `tokens/`; token tables read them directly.
+- **Tokens**: export variables from Figma as JSON into `tokens/`; token tables read them directly, and every token becomes a CSS variable (published as `tokens/tokens.css`) that previews and developers can use.
 - **Frames**: a Figma link on its own line in a page becomes an embedded frame.
 - **Code Connect**: this repository can be the code source Figma's Dev Mode links components to.
 - **Back-links**: add each page's URL to the component in Figma (Dev Mode → Dev resources) so developers land here.
@@ -47,12 +47,19 @@ Besides images, a page can render code: HTML, pasted SVG, and React (`jsx` / `ts
 
 `.github/workflows/deploy.yml` publishes to GitHub Pages on every push to `main`. One-time setup: **Settings → Pages → Source: GitHub Actions**.
 
-To use this template for another design system, update `repo` in `site.config.json` so the edit links point to the new repository.
+## Starting a new design system from this template
+
+1. On GitHub choose **Use this template → Create a new repository** (or fork it).
+2. In the new repository: **Settings → Pages → Source: GitHub Actions**, then run the "Deploy to GitHub Pages" workflow once from the **Actions** tab, or push any change.
+3. Set the site title in `site.config.json`.
+
+On GitHub Pages the edit links find the repository from the site address, so they point to the copy without any change. `repo` in `site.config.json` is only used with a custom domain or on a local preview.
 
 ## Local preview
 
 ```bash
 node scripts/build-manifest.mjs
+node scripts/build-tokens.mjs
 python3 -m http.server 8000
 ```
 

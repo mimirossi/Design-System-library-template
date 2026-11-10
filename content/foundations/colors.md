@@ -14,7 +14,6 @@ figma:
 
 ![Colors overview](assets/images/colors/overview.png)
 
-
 ## Tokens
 
 > [!TODO]

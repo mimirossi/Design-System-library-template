@@ -52,8 +52,15 @@
     return { data, body: src.slice(m[0].length) };
   }
 
+  /** On GitHub Pages the repository is read from the address, so a copy of this template needs no setup. */
+  function detectRepo() {
+    const host = /^([\w-]+)\.github\.io$/i.exec(location.hostname);
+    const name = location.pathname.split("/").filter(Boolean)[0];
+    return host && name && !/\.html?$/i.test(name) ? { owner: host[1], name } : null;
+  }
+
   function repoUrl() {
-    const r = config.repo || {};
+    const r = detectRepo() || config.repo || {};
     return r.owner && r.name ? "https://github.com/" + r.owner + "/" + r.name : "";
   }
   const branch = () => (config.repo && config.repo.branch) || "main";
@@ -437,7 +444,7 @@
       const value = resolve(t);
       const figmaAlias = t.ext["com.figma.aliasData"] && t.ext["com.figma.aliasData"].targetVariableName;
       const alias = figmaAlias || (typeof t.value === "string" && /^\{.+\}$/.test(t.value) ? t.value.slice(1, -1) : "");
-      const cssVar = "--" + prefix + t.name.replace(/[^a-zA-Z0-9]+/g, "-").toLowerCase();
+      const cssVar = "--" + prefix + t.name.replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase();
       let visual = "";
       let shown = typeof value === "object" ? JSON.stringify(value) : String(value);
       if (t.type === "color") {
@@ -677,10 +684,14 @@
       })
     );
 
-    if (config.preview && config.preview.tailwind && config.preview.tailwindTheme) {
-      try {
-        tailwindTheme = await fetchText(config.preview.tailwindTheme);
-      } catch (e) {}
+    if (config.preview && config.preview.tailwind) {
+      // Colour utilities generated from /tokens, then the hand-written theme on top.
+      for (const file of ["tokens/tokens.tailwind.css", config.preview.tailwindTheme]) {
+        if (!file) continue;
+        try {
+          tailwindTheme += (await fetchText(file)) + "\n";
+        } catch (e) {}
+      }
     }
 
     $("#brand-title").textContent = config.title || "Design System";
@@ -705,6 +716,7 @@
       try {
         localStorage.setItem("ds-theme", next);
       } catch (e) {}
+      if ($(".preview")) renderPage(currentSlug()); // previews follow the theme
     });
     $("#menu-btn").addEventListener("click", () => {
       const open = document.body.classList.toggle("menu-open");

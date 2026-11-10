@@ -175,6 +175,19 @@ path: color
 
 Uploading a newer export under the same file name updates every table that reads it.
 
+### Tokens in code
+
+Every token also becomes a CSS variable, with the name shown in the last column of the table. Previews load these variables, so component code can use them and follows the tokens when they change:
+
+```css
+.button {
+  background: var(--color-action-primary);
+  border-radius: var(--radius-md);
+}
+```
+
+Colour tokens work as Tailwind classes too: a token named `action/primary` gives `bg-action-primary`, `text-action-primary` and `border-action-primary`. A file with `dark` in its name, such as `dark.tokens.json`, applies when the dark theme is on. The full list of variables is published at `tokens/tokens.css` for developers to link or copy.
+
 ## Figma
 
 Paste a Figma link on a line of its own and it becomes an embedded frame. Use **Copy link to selection** in Figma so the embed opens on the right component.
