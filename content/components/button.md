@@ -52,14 +52,95 @@ figma:
 > [!TODO]
 > **Snippets.** Replace the example below with the real code. Keep the `preview` flag to show the HTML rendered.
 
-```html preview tab="HTML"
-<button class="example-button">Label</button>
-```
+```import type { ButtonHTMLAttributes } from "react";
 
-```css tab="CSS"
-.example-button {
-  /* component styles */
+export type ButtonVariant = "Default" | "Secondary" | "Outline" | "Ghost" | "Destructive" | "Link";
+
+export type ButtonState = "Default" | "Hover" | "Focus" | "Active" | "Disabled";
+
+type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, "disabled"> & {
+  label?: string;
+  state?: ButtonState;
+  variant?: ButtonVariant;
+};
+
+const variantClasses: Record<ButtonVariant, string> = {
+  Default:
+    "border-transparent bg-[#a0187c] text-[#fffdf7] hover:bg-[rgba(160,24,124,0.8)] active:bg-[#a0187c]",
+  Secondary:
+    "border-transparent bg-[#fae2f3] text-[#a0187c] hover:bg-[#edd7e7] active:bg-[#fae2f3]",
+  Outline: "border-[#767676] bg-[#fffdf7] text-[#1c1c1c] hover:bg-[#f5f1e7] active:bg-[#fffdf7]",
+  Ghost:
+    "border-transparent bg-transparent text-[#1c1c1c] hover:bg-[#f5f1e7] active:bg-transparent",
+  Destructive:
+    "border-transparent bg-[rgba(231,0,11,0.1)] text-[#e7000b] hover:bg-[rgba(231,0,11,0.2)] active:bg-[rgba(231,0,11,0.1)]",
+  Link: "border-transparent bg-transparent px-0 text-[#a0187c] underline decoration-solid underline-offset-auto",
+};
+
+const stateClasses: Record<ButtonState, string> = {
+  Default: "",
+  Hover: "",
+  Focus: "button-focus-ring",
+  Active: "",
+  Disabled: "opacity-50",
+};
+
+const previewOverrides: Record<ButtonVariant, Partial<Record<ButtonState, string>>> = {
+  Default: {
+    Hover: "bg-[rgba(160,24,124,0.8)]",
+    Active: "bg-[#a0187c]",
+  },
+  Secondary: {
+    Hover: "bg-[#edd7e7]",
+    Active: "bg-[#fae2f3]",
+  },
+  Outline: {
+    Hover: "bg-[#f5f1e7]",
+    Active: "bg-[#fffdf7]",
+  },
+  Ghost: {
+    Hover: "bg-[#f5f1e7]",
+    Active: "bg-transparent",
+  },
+  Destructive: {
+    Hover: "bg-[rgba(231,0,11,0.2)]",
+    Active: "bg-[rgba(231,0,11,0.1)]",
+  },
+  Link: {},
+};
+
+export default function Button({
+  className = "",
+  label = "Button",
+  state = "Default",
+  variant = "Default",
+  type = "button",
+  ...props
+}: ButtonProps) {
+  const disabled = state === "Disabled";
+  const isLink = variant === "Link";
+
+  return (
+    <button
+      {...props}
+      type={type}
+      disabled={disabled}
+      data-state={state}
+      data-variant={variant}
+      className={[
+        "button-base",
+        isLink ? "button-link" : "px-4",
+        variantClasses[variant],
+        stateClasses[state],
+        previewOverrides[variant][state] ?? "",
+        className,
+      ].join(" ")}
+    >
+      {label}
+    </button>
+  );
 }
+
 ```
 
 ## Props
