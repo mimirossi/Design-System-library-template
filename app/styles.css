@@ -21,7 +21,12 @@ a {
   color: var(--link);
   text-underline-offset: 3px;
 }
-svg {
+/* Interface icons only: SVGs pasted into page content keep their own size and colours. */
+.topbar svg,
+.sidebar svg,
+.edit-bar svg,
+.copy-btn svg,
+.img-missing svg {
   width: 1.1rem;
   height: 1.1rem;
   fill: none;
@@ -865,4 +870,12 @@ body.no-edit .section-missing {
   padding-top: 0;
   border-top: 0;
   font-size: 1.15rem;
+}
+
+/* SVG pasted straight into a page */
+.content svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 1.2rem 0;
 }
