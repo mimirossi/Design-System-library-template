@@ -25,14 +25,14 @@ figma:
 ## Variants
 
 > [!TODO]
-> **Variants and sizes.** One image or live preview per variant, with a line on when to use it.
+> **Variants and sizes.** One image, pasted SVG or `preview` code block per variant, with a line on when to use it.
 
 ![Tabs variants](assets/images/tabs/variants.png)
 
 ## States
 
 > [!TODO]
-> **States.** Default, hover, focus, active, disabled, loading, error — whichever apply.
+> **States.** Default, hover, focus, active, disabled, loading, error — as an image, pasted SVG or `preview` code block.
 
 ![Tabs states](assets/images/tabs/states.png)
 
@@ -50,7 +50,7 @@ figma:
 ## Code
 
 > [!TODO]
-> **Snippets.** Replace the example below with the real code. Keep the `preview` flag to show the HTML rendered.
+> **Full source.** Replace the example below with the real code. For React, open the block with `tsx component preview` so the other sections can render it.
 
 ```html preview tab="HTML"
 <button class="example-button">Label</button>

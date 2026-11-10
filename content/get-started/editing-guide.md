@@ -95,6 +95,47 @@ That group is written like this:
 ```
 ````
 
+## React components
+
+A `jsx` or `tsx` block with `preview` is compiled and rendered in the page. Tailwind classes work inside previews.
+
+Add `component` to the block that holds the full source of a component. It can sit anywhere on the page, usually in the Code section at the end, and every other preview on the same page can then use the component by name. That way each section shows only the code for its own detail.
+
+````markdown
+## Variants
+
+```tsx preview
+<Button variant="Secondary" label="Secondary" />
+<Button variant="Outline" label="Outline" />
+```
+
+## Code
+
+```tsx component preview title="button.tsx"
+export default function Button({ label = "Button", variant = "Default" }) {
+  return <button className="px-4 h-10 rounded-lg">{label}</button>;
+}
+```
+````
+
+Three things to know:
+
+- The opening line holds only the language and the flags. The code starts on the next line.
+- `import` lines are ignored in previews. React and its hooks are available; other packages are not.
+- CSS classes that are not Tailwind, such as `.button-base`, must be defined in `preview/preview.css`. The Tailwind theme goes in `preview/tailwind.css`.
+
+## SVG
+
+Paste the SVG in an `svg` block with `preview` to show the drawing with its code in a second tab. Pasted straight into the page, outside any block, it shows as a drawing only.
+
+```svg preview
+<svg width="120" height="48" viewBox="0 0 120 48" xmlns="http://www.w3.org/2000/svg">
+  <rect x="1" y="1" width="118" height="46" rx="12" fill="none" stroke="currentColor" stroke-width="2" />
+  <circle cx="26" cy="24" r="8" fill="currentColor" />
+  <rect x="44" y="20" width="56" height="8" rx="4" fill="currentColor" />
+</svg>
+```
+
 ## Do and don't
 
 > [!DO]
