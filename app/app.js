@@ -101,19 +101,40 @@
 
   const LANG_ALIAS = { html: "xml", vue: "xml", svg: "xml", jsx: "javascript", tsx: "typescript", sh: "bash", shell: "bash" };
 
+  const FLAGS = ["preview", "component"];
+
+  /** Reads the opening line of a code block: language, flags and labels. */
   function parseInfo(info) {
     info = info || "";
     const attrs = {};
     const rest = info.replace(/(\w+)="([^"]*)"/g, (m, k, v) => ((attrs[k] = v), ""));
     const words = rest.split(/\s+/).filter(Boolean);
-    return { lang: words[0] || "", preview: words.includes("preview"), component: words.includes("component"), tab: attrs.tab || "", title: attrs.title || "" };
+    // Code pasted right after the backticks is not a language name: keep it as code.
+    const pasted = words.length > 0 && (!/^[\w+#.-]+$/.test(words[0]) || words.slice(1).some((w) => !FLAGS.includes(w)));
+    if (pasted) return { pasted: true, lang: "", preview: false, component: false, tab: "", title: "" };
+    return { lang: (words[0] || "").toLowerCase(), preview: words.includes("preview"), component: words.includes("component"), tab: attrs.tab || "", title: attrs.title || "" };
+  }
+
+  /** Guesses what pasted code is, so it can be highlighted and shown without any flags. */
+  function detectCode(code) {
+    const text = code.trim();
+    if (/^<svg[\s>]/i.test(text)) return { lang: "svg", preview: true };
+    const jsx = /<[A-Z][\w.]*[\s/>]|className=|<\/[a-z]+>\s*\)?;?\s*\}?\s*$/.test(text);
+    const script = /^\s*(import|export|const|let|function|type|interface|class)\b/m.test(text);
+    if (script && jsx) return { lang: "tsx", preview: true, component: /(function|const|class)\s+[A-Z]\w*/.test(text) };
+    if (/^<[a-z!]/i.test(text)) return { lang: jsx && /<[A-Z]/.test(text) ? "tsx" : "html", preview: true };
+    if (script) return { lang: "typescript" };
+    if (/^[.#:@\w-][^{}]*\{[^}]*:[^}]*\}/m.test(text)) return { lang: "css" };
+    return { lang: "" };
   }
 
   marked.use({
     gfm: true,
     renderer: {
       code(token) {
-        const info = parseInfo(token.lang);
+        let info = parseInfo(token.lang);
+        if (info.pasted) token = { text: token.lang + "\n" + token.text };
+        if (info.pasted || !info.lang) info = Object.assign(info, detectCode(token.text));
         if (info.lang === "tokens") return '<div class="tokens-src">' + esc(token.text) + "</div>";
         return (
           '<div class="code-src" data-lang="' + esc(info.lang) + '" data-tab="' + esc(info.tab) +
