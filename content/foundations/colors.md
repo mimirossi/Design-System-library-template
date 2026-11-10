@@ -4,7 +4,7 @@ group: Foundations
 order: 10
 type: foundation
 description: Tonal scales, semantic roles and how colour is applied across themes.
-figma:
+figma:https://www.figma.com/design/CjSPlGx6zYgsUuCU58YOom/Untitled?node-id=56-757&t=kLZIsNzzPl37Nkej-4
 ---
 
 ## Overview
