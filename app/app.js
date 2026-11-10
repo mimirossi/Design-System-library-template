@@ -52,8 +52,15 @@
     return { data, body: src.slice(m[0].length) };
   }
 
+  /** On GitHub Pages the repository is read from the address, so a copy of this template needs no setup. */
+  function detectRepo() {
+    const host = /^([\w-]+)\.github\.io$/i.exec(location.hostname);
+    const name = location.pathname.split("/").filter(Boolean)[0];
+    return host && name && !/\.html?$/i.test(name) ? { owner: host[1], name } : null;
+  }
+
   function repoUrl() {
-    const r = config.repo || {};
+    const r = detectRepo() || config.repo || {};
     return r.owner && r.name ? "https://github.com/" + r.owner + "/" + r.name : "";
   }
   const branch = () => (config.repo && config.repo.branch) || "main";
