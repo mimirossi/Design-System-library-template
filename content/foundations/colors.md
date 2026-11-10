@@ -13,7 +13,6 @@ figma:
 > **The principle.** What this foundation defines and the reasoning behind it.
 
 ![Colors overview](assets/images/colors/overview.png)
-<img width="2944" height="1824" alt="image" src="https://github.com/user-attachments/assets/05aa66c5-8383-4250-93ff-6abf6745955c" />
 
 
 ## Tokens
